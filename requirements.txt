@@ -1,0 +1,18 @@
+# YouTube Transcript Summarizer - Requirements
+# Main dependencies for the YouTube transcript summarizer app
+
+# YouTube transcript fetching
+youtube-transcript-api==1.2.2
+
+# Text-to-speech functionality
+gTTS==2.5.4
+
+# Google Generative AI (Gemini) for text summarization
+google-generativeai==0.8.5
+
+# Environment variable management
+python-dotenv==1.1.1
+
+# Standard library modules used (no installation required):
+# - os
+# - urllib.parse
