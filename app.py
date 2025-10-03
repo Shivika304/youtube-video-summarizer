@@ -37,7 +37,7 @@ def get_video_id(url):
 def get_transcript(video_id):
     try:
         api = YouTubeTranscriptApi()
-        transcript_data = api.fetch(video_id, languages=['en'])
+        transcript_data = api.fetch(video_id, languages=['en', 'hi','fr'])
         text = " ".join([segment.text for segment in transcript_data])
         print(f"Got transcript: {len(text)} characters")
         return text
@@ -47,8 +47,25 @@ def get_transcript(video_id):
 
 # Functions for AI summary and notes
 def generate_summary(text):
-    prompt = f"Please summarize this video transcript in bullet points. Make it easy to understand:\n\n{text}"
+    """Generates a structured, concise summary using an improved prompt."""
     
+    prompt = f"""
+    You are an expert at creating highly concise and accurate summaries. Your task is to analyze the following video transcript and generate a summary that follows these strict rules:
+
+    **Content Rules:**
+    1.  **Be Extremely Concise:** The summary must be short and to the point. Extract only the most critical information.
+    2.  **Maintain Accuracy:** Ensure the summary is a faithful representation of the transcript's main ideas.
+
+    **Formatting Rules:**
+    1.  **Use a numbered list (1., 2., 3., etc.) for the main topics.**
+    2.  **Under each numbered point, you MAY use nested bullet points (* or -) for essential, brief details.**
+    3.  **Do NOT use any Markdown headers (e.g., #, ##, ###).** The output should be a clean list.
+    4.  ** make it under 150 words
+    Here is the transcript:
+    ---
+    {text}
+    ---
+    """
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
         print("Making summary...")
@@ -59,7 +76,33 @@ def generate_summary(text):
         return "Sorry, couldn't make summary"
 
 def generate_notes(text):
-    prompt = f"Make detailed notes from this video transcript with headings and bullet points:\n\n{text}"
+    """Generates concise, content-focused notes in a unique numbered format."""
+
+    # This prompt is specifically designed to filter out fluff and use a clean format.
+    """Generates concise, content-focused notes in a unique numbered format."""
+
+    # This prompt is specifically designed to filter out fluff and use a clean format.
+    # CORRECTED INDENTATION: This block is also now aligned correctly.
+    prompt = f"""
+You are an expert content distiller. Your task is to analyze the following transcript and produce a set of concise, high-impact notes in HINDI that focus exclusively on the core information.
+* you you to give output in only english language, even if u get input trascript of any language
+**Instructions:**
+
+**1. Content Focus & Filtering:**
+- **Distill the Core Message:** Extract the essential information—the "what" and the "why" of the video.
+- **Ignore Conversational Filler:** You MUST completely ignore and exclude all non-essential content (introductions, calls to action like "like and subscribe," etc.).
+- **Rephrase for Clarity:** Synthesize and rephrase the key points to make the notes unique and easy to understand.
+
+**2. Formatting Rules:**
+- **Use a Numbered List:** Structure the entire output as a clean, numbered list (1., 2., 3., etc.).
+- **No Headers or Bullets:** You MUST NOT use any Markdown headers (#) or bullet points (*, -).
+- **Use Bold for Emphasis:** Use **bold text** to highlight the most critical terms.
+
+Here is the transcript to process:
+---
+{text}
+---
+"""
     
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
@@ -70,7 +113,7 @@ def generate_notes(text):
         print(f"Error making notes: {e}")
         return "Sorry, couldn't make notes"
 
-# Function to make audio file from text
+
 def text_to_audio(summary, filename="summary.mp3"):
     try:
         print("Making audio file...")
