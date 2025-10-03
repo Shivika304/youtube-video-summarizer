@@ -152,12 +152,11 @@ if __name__ == "__main__":
                 print("\n" + "="*30)
                 print("What do you want to do?")
                 print("  1. Make a summary")
-                print("  2. Make notes") 
-                print("  3. Make audio summary")
-                print("  4. Exit")
+                print("  2. Make notes")
+                print("  3. Exit")
                 print("="*30)
                 
-                choice = input("Pick 1-4: ").strip()
+                choice = input("Pick 1-3: ").strip()
 
                 if choice == '1':
                     print("\nMaking summary...")
@@ -177,23 +176,14 @@ if __name__ == "__main__":
                     print(notes)
                     print("="*40)
                     
-                elif choice == '3':
-                    print("\nMaking audio summary...")
-                    summary_text = generate_summary(transcript)
-                    file = text_to_audio(summary_text)
-                    if file:
-                        print(f"Audio saved: {file}")
-                        print("You can listen to it now!")
-                    else:
-                        print("Couldn't make audio file")
                         
-                elif choice == '4':
+                elif choice == '3':
                     print("\nThanks for using the summarizer!")
                     print("Bye!")
                     break
                     
                 else:
-                    print("Please pick 1, 2, 3, or 4")
+                    print("Please pick 1, 2 or 3")
         else:
             print("\nCouldn't get the transcript.")
             print("Maybe the video doesn't have captions or is private.")
