@@ -24,7 +24,7 @@ Dependencies:
 - Flask-CORS: Cross-origin request handling
 - All dependencies from app.py
 
-Author: [Your Name] & [Friend's Name]
+Author: [Your Name]
 Version: 1.0.0
 """
 
@@ -85,6 +85,37 @@ def validate_request_data(data, required_fields):
 # ================================
 # API ENDPOINTS
 # ================================
+
+@app.route('/', methods=['GET'])
+def home():
+    # API information endpoint
+    """API information endpoint"""
+    api_info = {
+        "service": "YouTube Transcript Summarizer API",
+        "version": "1.0.0",
+        "description": "AI-powered video processing with transcript extraction and summarization",
+        "endpoints": {
+            "POST /api/process": "Process YouTube videos",
+            "GET /api/audio/<filename>": "Download audio files",
+            "GET /health": "Health check"
+        },
+        "supported_operations": [
+            "transcript", "summary", "notes", "audio"
+        ]
+    }
+    return jsonify(create_success_response(api_info, "API is running"))
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    # Health check endpoint
+    """Health check endpoint"""
+    health_data = {
+        "service_status": "healthy",
+        "gemini_api_configured": bool(os.getenv("GEMINI_API_KEY")),
+        "audio_directory_exists": AUDIO_DIR.exists(),
+        "uptime": "running"
+    }
+    return jsonify(create_success_response(health_data, "Service is healthy"))
 
 @app.route('/api/process', methods=['POST'])
 def process_video():
@@ -156,6 +187,7 @@ def process_video():
         
         elif operation == 'summary':
             summary = generate_summary(transcript)
+            # Check if summary generation failed (app.py returns generic error message)
             if summary == "Sorry, couldn't make summary":
                 return create_error_response("Summary generation failed", "SUMMARY_GENERATION_FAILED", 500)
             result_data = {
@@ -169,6 +201,7 @@ def process_video():
         
         elif operation == 'notes':
             notes = generate_notes(transcript)
+            # Check if notes generation failed (app.py returns generic error message)
             if notes == "Sorry, couldn't make notes":
                 return create_error_response("Notes generation failed", "NOTES_GENERATION_FAILED", 500)
             result_data = {
@@ -181,16 +214,21 @@ def process_video():
             return jsonify(create_success_response(result_data, "Notes generated successfully"))
         
         elif operation == 'audio':
+            # Generate summary first
             summary = generate_summary(transcript)
+            # Check if summary generation failed (app.py returns generic error message)
             if summary == "Sorry, couldn't make summary":
                 return create_error_response("Summary generation failed", "SUMMARY_GENERATION_FAILED", 500)
             
+            # Create audio filename
             if audio_filename:
                 audio_file = f"{audio_filename}.mp3"
             else:
                 audio_file = f"summary_{video_id}.mp3"
             
             audio_path = AUDIO_DIR / audio_file
+            
+            # Generate audio
             result_file = text_to_audio(summary, str(audio_path))
             
             if result_file:
@@ -208,10 +246,119 @@ def process_video():
                 return create_error_response("Failed to generate audio file", "AUDIO_GENERATION_FAILED", 500)
     
     except Exception as e:
+        # Log the full traceback for debugging
         print(f"Error processing video: {str(e)}")
         print(traceback.format_exc())
+        
         return create_error_response(
             f"An unexpected error occurred: {str(e)}", 
             "INTERNAL_ERROR", 
             500
         )
+
+@app.route('/api/audio/<filename>', methods=['GET'])
+def download_audio(filename):
+    # Download generated audio file
+    """Download audio files"""
+    try:
+        file_path = AUDIO_DIR / filename
+        
+        if not file_path.exists():
+            return create_error_response(
+                f"Audio file '{filename}' not found", 
+                "FILE_NOT_FOUND", 
+                404
+            )
+        
+        return send_file(
+            str(file_path),
+            as_attachment=True,
+            download_name=filename,
+            mimetype='audio/mpeg'
+        )
+    
+    except Exception as e:
+        return create_error_response(
+            f"Error downloading file: {str(e)}", 
+            "DOWNLOAD_ERROR", 
+            500
+        )
+
+@app.route('/api/files', methods=['GET'])
+def list_audio_files():
+    # List all available audio files
+    """List all available audio files"""
+    try:
+        files = []
+        for file_path in AUDIO_DIR.glob("*.mp3"):
+            stat = file_path.stat()
+            files.append({
+                "filename": file_path.name,
+                "size_bytes": stat.st_size,
+                "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                "download_url": f"/api/audio/{file_path.name}"
+            })
+        
+        result_data = {
+            "files": files,
+            "total_files": len(files)
+        }
+        
+        return jsonify(create_success_response(result_data, f"Found {len(files)} audio files"))
+    
+    except Exception as e:
+        return create_error_response(
+            f"Error listing files: {str(e)}", 
+            "FILE_LIST_ERROR", 
+            500
+        )
+
+# ================================
+# ERROR HANDLERS
+# ================================
+
+# Handle 404 Not Found errors
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors"""
+    return create_error_response("Endpoint not found", "NOT_FOUND", 404)
+
+# Handle 405 Method Not Allowed errors
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Handle 405 errors"""
+    return create_error_response("Method not allowed", "METHOD_NOT_ALLOWED", 405)
+
+# Handle 500 Internal Server errors
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors"""
+    return create_error_response("Internal server error", "INTERNAL_ERROR", 500)
+
+# ================================
+# APPLICATION RUNNER
+# ================================
+
+if __name__ == '__main__':
+    print("Starting YouTube Transcript Summarizer Flask API...")
+    print("API Documentation:")
+    print("- GET /: API information")
+    print("- POST /api/process: Process videos")
+    print("- GET /api/audio/<filename>: Download audio")
+    print("- GET /health: Health check")
+    print("\nExample request:")
+    print("""
+curl -X POST http://localhost:5000/api/process \\
+     -H "Content-Type: application/json" \\
+     -d '{
+       "url": "https://youtube.com/watch?v=VIDEO_ID",
+       "operation": "summary"
+     }'
+    """)
+    
+    # Run the Flask app
+    app.run(
+        host='0.0.0.0',
+        port=8080,
+        debug=True
+    )
