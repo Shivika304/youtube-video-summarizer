@@ -50,69 +50,104 @@ def generate_summary(text):
     """Generates a structured, concise summary using an improved prompt."""
     
     prompt = f"""
-    You are an expert at creating highly concise and accurate summaries. Your task is to analyze the following video transcript and generate a summary that follows these strict rules:
+You are an expert at creating highly concise and accurate summaries. Your task is to analyze the following video transcript and generate a summary that follows these strict rules:
 
-    **Content Rules:**
-    1.  **Be Extremely Concise:** The summary must be short and to the point. Extract only the most critical information.
-    2.  **Maintain Accuracy:** Ensure the summary is a faithful representation of the transcript's main ideas.
+**CRITICAL FORMATTING RULES:**
+- Use ONLY plain text - NO markdown, NO asterisks (*), NO bold formatting (**)
+- Structure as a clean numbered list (1., 2., 3., etc.)
+- Do NOT use any special characters for emphasis
+- Keep each point concise and clear
+- Output in English only, regardless of input language
 
-    **Formatting Rules:**
-    1.  **Use a numbered list (1., 2., 3., etc.) for the main topics.**
-    2.  **Under each numbered point, you MAY use nested bullet points (* or -) for essential, brief details.**
-    3.  **Do NOT use any Markdown headers (e.g., #, ##, ###).** The output should be a clean list.
-    4.  ** make it under 150 words
-    Here is the transcript:
-    ---
-    {text}
-    ---
-    """
-    try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        print("Making summary...")
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        print(f"Error making summary: {e}")
-        return "Sorry, couldn't make summary"
+**Content Rules:**
+1. Be extremely concise - the summary must be short and to the point
+2. Extract only the most critical information
+3. Maintain accuracy - faithful representation of the transcript's main ideas
+4. Make it under 150 words
+5. Focus on key facts, main points, and essential details
 
-def generate_notes(text):
-    """Generates concise, content-focused notes in a unique numbered format."""
-
-    # This prompt is specifically designed to filter out fluff and use a clean format.
-    """Generates concise, content-focused notes in a unique numbered format."""
-
-    # This prompt is specifically designed to filter out fluff and use a clean format.
-    # CORRECTED INDENTATION: This block is also now aligned correctly.
-    prompt = f"""
-You are an expert content distiller. Your task is to analyze the following transcript and produce a set of concise, high-impact notes in HINDI that focus exclusively on the core information.
-* you you to give output in only english language, even if u get input trascript of any language
-**Instructions:**
-
-**1. Content Focus & Filtering:**
-- **Distill the Core Message:** Extract the essential information—the "what" and the "why" of the video.
-- **Ignore Conversational Filler:** You MUST completely ignore and exclude all non-essential content (introductions, calls to action like "like and subscribe," etc.).
-- **Rephrase for Clarity:** Synthesize and rephrase the key points to make the notes unique and easy to understand.
-
-**2. Formatting Rules:**
-- **Use a Numbered List:** Structure the entire output as a clean, numbered list (1., 2., 3., etc.).
-- **No Headers or Bullets:** You MUST NOT use any Markdown headers (#) or bullet points (*, -).
-- **Use Bold for Emphasis:** Use **bold text** to highlight the most critical terms.
+**Example of correct format:**
+1. This covers the main topic discussed in the video
+2. This explains the key concept or process mentioned
+3. This summarizes the important conclusion or outcome
 
 Here is the transcript to process:
 ---
 {text}
 ---
+
+Remember: Use ONLY plain text with numbered points. No asterisks, no bold formatting, no special characters.
+"""
+    
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        print("Making summary...")
+        response = model.generate_content(prompt)
+        
+        # Clean up any remaining formatting symbols
+        clean_summary = response.text.strip()
+        clean_summary = clean_summary.replace('**', '')  # Remove bold formatting
+        clean_summary = clean_summary.replace('*', '')   # Remove any asterisks
+        clean_summary = clean_summary.replace('##', '')  # Remove headers
+        clean_summary = clean_summary.replace('#', '')   # Remove headers
+        clean_summary = clean_summary.replace('###', '') # Remove sub-headers
+        
+        return clean_summary
+        
+    except Exception as e:
+        print(f"Error making summary: {e}")
+        return "Sorry, couldn't make summary"
+
+def generate_notes(text):
+    """Generates concise, content-focused notes in a clean numbered format."""
+    
+    prompt = f"""
+You are an expert content distiller. Your task is to analyze the following transcript and produce a set of concise, high-impact notes that focus exclusively on the core information.
+
+**CRITICAL FORMATTING RULES:**
+- Use ONLY plain text - NO markdown, NO asterisks (*), NO bold formatting (**)
+- Structure as a clean numbered list (1., 2., 3., etc.)
+- Do NOT use any special characters for emphasis
+- Keep each point concise and clear
+- Output in English only, regardless of input language
+
+**Content Guidelines:**
+- Extract only the essential information - the "what" and the "why"
+- Ignore conversational filler, introductions, calls to action
+- Focus on facts, features, specifications, and key insights
+- Rephrase for clarity and understanding
+- Each numbered point should be self-contained and informative
+
+**Example of correct format:**
+1. This is the first key point about the topic
+2. This is the second important detail with specific information
+3. This covers another essential aspect of the content
+
+Here is the transcript to process:
+---
+{text}
+---
+
+Remember: Use ONLY plain text with numbered points. No asterisks, no bold formatting, no special characters.
 """
     
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
         print("Making notes...")
         response = model.generate_content(prompt)
-        return response.text.strip()
+        
+        # Clean up any remaining formatting symbols
+        clean_notes = response.text.strip()
+        clean_notes = clean_notes.replace('**', '')  # Remove bold formatting
+        clean_notes = clean_notes.replace('*', '')   # Remove any asterisks
+        clean_notes = clean_notes.replace('##', '')  # Remove headers
+        clean_notes = clean_notes.replace('#', '')   # Remove headers
+        
+        return clean_notes
+        
     except Exception as e:
         print(f"Error making notes: {e}")
         return "Sorry, couldn't make notes"
-
 
 def text_to_audio(summary, filename="summary.mp3"):
     try:
